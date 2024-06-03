@@ -5,6 +5,7 @@
 import torch
 import os
 import pytorch_lightning as pl
+import argparse
 
 torch.set_float32_matmul_precision("medium")
 
@@ -27,6 +28,11 @@ class Config:
     finetune_checkpoint_dir = "checkpoints/finetune"
     pretrain = False
 
+    def __init__(self, args):
+        for k, v in vars(args).items():
+            setattr(self, k, v)
+            print(f"Setting {k} to {v}")
+
 
 def get_total_steps(dataloader, batch_size, epochs):
     return len(dataloader) * epochs
@@ -43,7 +49,15 @@ def get_last_checkpoint(checkpoint_dir: str):
 
 
 if __name__ == "__main__":
-    cfg = Config()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pretrain", action="store_true")
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--batch_size", type=int, default=128)
+    parser.add_argument("--log_every_n_steps", type=int, default=10)
+    args = parser.parse_args()
+
+    cfg = Config(args)
 
     datamodule = CIFAR100DataModule(
         num_workers=cfg.num_workers,

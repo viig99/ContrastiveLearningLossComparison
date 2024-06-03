@@ -12,6 +12,13 @@ This repository is to compare the performance of different contrastive learning 
 * The model is then fine-tuned on the remaining 20% of the data for 10 epochs using the cross-entropy loss function and 5% of the data is used for validation.
 * The accuracy of the model is evaluated on the test set.
 
+## Usage
+To run the code, follow the steps below:
+```bash
+$ python train.py --pretrain
+$ python train.py
+```
+
 ## Results
 The following table shows the performance of different contrastive learning loss functions on the CIFAR-100 dataset. The results are reported in terms of the top-1 accuracy.
 
