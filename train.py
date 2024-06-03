@@ -63,6 +63,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--loss_func", type=str, choices=Losses.get_choices(), default=Config.loss_func
     )
+    parser.add_argument(
+        "--continue_pretrain", action="store_true", help="Continue pretraining"
+    )
+    parser.add_argument(
+        "--continue_finetune", action="store_true", help="Continue finetuning"
+    )
     args = parser.parse_args()
 
     cfg = Config(args)
@@ -80,6 +86,7 @@ if __name__ == "__main__":
     if not (
         os.path.exists(pretrain_checkpoint_dir)
         and get_last_checkpoint(pretrain_checkpoint_dir)
+        and not args.continue_pretrain
     ):
         datamodule.setup("pretrain")
         pretrain_data = datamodule.pretrain_dataloader()
@@ -122,6 +129,7 @@ if __name__ == "__main__":
     if not (
         os.path.exists(finetune_checkpoint_dir)
         and get_last_checkpoint(finetune_checkpoint_dir)
+        and not args.continue_finetune
     ):
 
         datamodule.setup(stage="finetune")
@@ -178,8 +186,33 @@ if __name__ == "__main__":
             ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
         )
 
-        # Test phase
+    # Test phase
+    if os.path.exists(finetune_checkpoint_dir) and get_last_checkpoint(
+        finetune_checkpoint_dir
+    ):
         datamodule.setup("test")
+
+        backbone_model = SimCLR.load_from_checkpoint(
+            pretrain_checkpoint,
+            total_steps=0,
+            temperature=cfg.temperature,
+            loss_func_name=cfg.loss_func,
+        )
+
+        finetune_model = LinearClassifier.load_from_checkpoint(
+            get_last_checkpoint(finetune_checkpoint_dir),  # type: ignore
+            backbone_model=backbone_model,
+            num_classes=cfg.num_classes,
+            total_steps=0,
+        )
+
+        finetune_trainer = pl.Trainer(
+            accelerator="auto",
+            strategy="auto",
+            precision=cfg.precision,  # type: ignore
+            log_every_n_steps=cfg.log_every_n_steps,
+        )
+
         finetune_trainer.test(
             model=finetune_model, dataloaders=datamodule.test_dataloader()
         )
