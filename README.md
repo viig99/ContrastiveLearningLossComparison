@@ -24,9 +24,9 @@ $ python train.py
 ## Results
 The following table shows the performance of different contrastive learning loss functions on the CIFAR-100 dataset. The results are reported in terms of the top-1 accuracy.
 
-| Loss Function | Top-1 Accuracy |
-| ------------- | -------------- |
-| InfoNCE Loss  | 0.425          |
-| NT-Xent Loss  |                |
-| DCL Loss      |                |
-| DHEL Loss     |                |
+| Loss Function | Top-1 Accuracy | Top-5 Accuracy |
+| ------------- | -------------- | -------------- |
+| InfoNCE Loss  |                |                |
+| NT-Xent Loss  |                |                |
+| DCL Loss      |                |                |
+| DHEL Loss     |                |                |
