@@ -9,12 +9,14 @@ import argparse
 
 torch.set_float32_matmul_precision("medium")
 
-from lib.model import SimCLR, LinearClassifier
+from lib.model import SimCLR, LinearClassifier, Losses
 from lib.data import CIFAR100DataModule
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from glob import glob
+from dataclasses import dataclass
 
 
+@dataclass
 class Config:
     num_workers = 10
     batch_size = 128
@@ -27,6 +29,8 @@ class Config:
     pretrain_checkpoint_dir = "checkpoints/pretrain"
     finetune_checkpoint_dir = "checkpoints/finetune"
     pretrain = False
+    loss_func = "info_nce"
+    temperature = 0.1
 
     def __init__(self, args):
         for k, v in vars(args).items():
@@ -52,9 +56,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--pretrain", action="store_true")
-    parser.add_argument("--num_workers", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=128)
-    parser.add_argument("--log_every_n_steps", type=int, default=10)
+    parser.add_argument("--num_workers", type=int, default=Config.num_workers)
+    parser.add_argument("--batch_size", type=int, default=Config.batch_size)
+    parser.add_argument(
+        "--log_every_n_steps", type=int, default=Config.log_every_n_steps
+    )
+    parser.add_argument("--temperature", type=float, default=Config.temperature)
+    parser.add_argument(
+        "--loss_func", type=str, choices=Losses.get_choices(), default=Config.loss_func
+    )
     args = parser.parse_args()
 
     cfg = Config(args)
@@ -65,21 +75,24 @@ if __name__ == "__main__":
     )
     datamodule.prepare_data()
     datamodule.setup("fit")
-    datamodule.setup("test")
+
+    pretrain_checkpoint_dir = f"{cfg.pretrain_checkpoint_dir}_{cfg.loss_func}"
 
     if cfg.pretrain:
 
         pretrain_data = datamodule.pretrain_dataloader()
 
         model = SimCLR(
-            total_steps=get_total_steps(pretrain_data, cfg.batch_size, cfg.max_epochs)
+            total_steps=get_total_steps(pretrain_data, cfg.batch_size, cfg.max_epochs),
+            temperature=cfg.temperature,
+            loss_func_name=cfg.loss_func,
         )
 
         # Pre-training phase
         lr_monitor = LearningRateMonitor(logging_interval="step")
         checkpoint_callback_pretrain = ModelCheckpoint(
             monitor="epoch_ce_loss",
-            dirpath=cfg.pretrain_checkpoint_dir,
+            dirpath=pretrain_checkpoint_dir,
             filename="simclr-cifar100-{epoch:02d}-{epoch_ce_loss:.2f}",
             save_top_k=2,
             mode="min",
@@ -100,18 +113,26 @@ if __name__ == "__main__":
         trainer.fit(
             model=model,
             train_dataloaders=pretrain_data,
-            ckpt_path=get_last_checkpoint(cfg.pretrain_checkpoint_dir),
+            ckpt_path=get_last_checkpoint(pretrain_checkpoint_dir),
         )
 
     else:
 
+        datamodule.setup(stage="finetune")
+        datamodule.setup("test")
+
         # Fine-tuning phase
-        checkpoint = get_last_checkpoint(cfg.pretrain_checkpoint_dir)
+        checkpoint = get_last_checkpoint(pretrain_checkpoint_dir)
 
         if checkpoint is None:
-            raise ValueError("No checkpoint found")
+            raise ValueError("No checkpoint found, please pretrain first.")
 
-        backbone_model = SimCLR.load_from_checkpoint(checkpoint, total_steps=0)
+        backbone_model = SimCLR.load_from_checkpoint(
+            checkpoint,
+            total_steps=0,
+            temperature=cfg.temperature,
+            loss_func_name=cfg.loss_func,
+        )
 
         finetune_data = datamodule.train_dataloader()
         finetune_val_data = datamodule.val_dataloader()
@@ -125,10 +146,12 @@ if __name__ == "__main__":
             total_steps=get_total_steps(finetune_data, batch_size, num_epochs),
         )
 
+        finetune_checkpoint_dir = f"{cfg.finetune_checkpoint_dir}_{cfg.loss_func}"
+
         lr_monitor = LearningRateMonitor(logging_interval="step")
         checkpoint_callback_finetune = ModelCheckpoint(
             monitor="val_acc",
-            dirpath=cfg.finetune_checkpoint_dir,
+            dirpath=finetune_checkpoint_dir,
             filename="linear-cifar100-{epoch:02d}-{val_acc:.2f}",
             save_top_k=2,
             mode="max",
@@ -149,7 +172,7 @@ if __name__ == "__main__":
             model=finetune_model,
             train_dataloaders=finetune_data,
             val_dataloaders=finetune_val_data,
-            ckpt_path=get_last_checkpoint(cfg.finetune_checkpoint_dir),
+            ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
         )
 
         finetune_trainer.test(

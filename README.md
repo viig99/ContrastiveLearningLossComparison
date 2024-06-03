@@ -6,6 +6,8 @@ This repository is to compare the performance of different contrastive learning 
 * [DCL Loss (Decoupled Contrastive Learning)](https://arxiv.org/abs/2110.06848 "Decoupled Contrastive Learning")
 * [DHEL Loss (Decoupled Hypershperical Energy Loss)](https://arxiv.org/abs/2405.18045 "Bridging Mini-Batch and Asymptotic Analysis in Contrastive Learning: From InfoNCE to Kernel-Based Losses")
 
+InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file.
+
 ## Methodology
 * The CIFAR-100 dataset is used to train a ResNet-18 model. 
 * The model is pre-trained on 75% of the data for 200 epochs using the contrastive learning loss functions mentioned above.

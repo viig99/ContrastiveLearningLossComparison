@@ -3,17 +3,31 @@ import torchvision
 import pytorch_lightning as pl
 from torch import nn
 from lightly.models.modules import SimCLRProjectionHead
-from lib.losses import InfoNCELoss
 from transformers import get_cosine_schedule_with_warmup
+from enum import Enum
+from lib.losses import *
+
+
+class Losses(Enum):
+    info_nce = InfoNCELoss
+    dcl = DCL
+    dcl_symmetric = DCL_symmetric
+    nt_xent = NT_xent
+    dhel = DHEL
+
+    @staticmethod
+    def get_choices():
+        return [loss.name for loss in Losses]
 
 
 class SimCLR(pl.LightningModule):
-    def __init__(self, total_steps: int):
+    def __init__(self, total_steps: int, temperature: float, loss_func_name: str):
         super().__init__()
         resnet = torchvision.models.resnet18()
         self.backbone = nn.Sequential(*list(resnet.children())[:-1])
-        self.projection_head = SimCLRProjectionHead(512, 2048, 2048)
-        self.criterion = InfoNCELoss()
+        self.projection_head = SimCLRProjectionHead(512, 2048, 2048, num_layers=3)
+        loss_func = getattr(Losses, loss_func_name).value
+        self.criterion = loss_func(temperature)
         self.total_steps = total_steps
         self.warmup_steps = int(0.05 * total_steps)
 

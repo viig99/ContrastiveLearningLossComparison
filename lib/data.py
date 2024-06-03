@@ -48,6 +48,8 @@ class CIFAR100DataModule(L.LightningDataModule):
             self.cifar_pretrain, self.cifar_finetune_train, self.cifar_finetune_val = (
                 random_split(cifar_train_full, [0.7, 0.25, 0.05], generator=generator)
             )
+
+        if stage == "finetune":
             self.cifar_finetune_train.dataset.transform = self.val_transforms  # type: ignore
             self.cifar_finetune_val.dataset.transform = self.val_transforms  # type: ignore
 
