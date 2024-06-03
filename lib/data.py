@@ -1,4 +1,5 @@
 import lightning as L
+import torch
 from torch.utils.data import DataLoader, random_split
 from lightly.transforms.simclr_transform import SimCLRTransform
 from lightly.transforms.utils import IMAGENET_NORMALIZE
@@ -38,8 +39,9 @@ class CIFAR100DataModule(L.LightningDataModule):
             cifar_train_full = CIFAR100(
                 self.data_dir, train=True, transform=self.transform
             )
+            generator = torch.Generator().manual_seed(42)
             self.cifar_pretrain, self.cifar_finetune_train, self.cifar_finetune_val = (
-                random_split(cifar_train_full, [0.7, 0.25, 0.05])
+                random_split(cifar_train_full, [0.7, 0.25, 0.05], generator=generator)
             )
 
         # Assign test dataset for use in dataloader(s)

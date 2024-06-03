@@ -24,7 +24,7 @@ class Config:
 
 
 def get_total_steps(dataloader, batch_size, epochs):
-    return (len(dataloader) // batch_size + 1) * epochs
+    return len(dataloader) * epochs
 
 
 def get_last_checkpoint(checkpoint_dir: str):
@@ -70,11 +70,13 @@ if __name__ == "__main__":
         precision=cfg.precision,  # type: ignore
         log_every_n_steps=cfg.log_every_n_steps,
         callbacks=[lr_monitor, checkpoint_callback_pretrain],
+        benchmark=False,
+        deterministic=True,
     )
 
     trainer.fit(
         model=model,
-        train_dataloaders=datamodule.pretrain_dataloader(),
+        train_dataloaders=pretrain_data,
         ckpt_path=get_last_checkpoint(cfg.checkpoint_dir),
     )
 
