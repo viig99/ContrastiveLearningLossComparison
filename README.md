@@ -1,10 +1,10 @@
 # Contrastive Learning Loss Comparision
 
 This repository is to compare the performance of different contrastive learning loss functions on the CIFAR-100 dataset. The following loss functions are compared:
-* InfoNCE Loss
-* NT-Xent Loss (SimCLR)
-* DCL Loss (Decoupled Contrastive Learning)
-* DHEL Loss (Decoupled Hypershperical Energy Loss)
+* [InfoNCE Loss](https://arxiv.org/pdf/1807.03748v2 "Representation Learning with Contrastive Predictive Coding")
+* [NT-Xent Loss (SimCLR)](https://arxiv.org/abs/2002.05709 "A Simple Framework for Contrastive Learning of Visual Representations")
+* [DCL Loss (Decoupled Contrastive Learning)](https://arxiv.org/abs/2110.06848 "Decoupled Contrastive Learning")
+* [DHEL Loss (Decoupled Hypershperical Energy Loss)](https://arxiv.org/abs/2405.18045 "Bridging Mini-Batch and Asymptotic Analysis in Contrastive Learning: From InfoNCE to Kernel-Based Losses")
 
 ## Methodology
 * The CIFAR-100 dataset is used to train a ResNet-18 model. 
