@@ -23,7 +23,7 @@ class Config:
     batch_factor = 4
     max_epochs = 200
     num_classes = 100
-    finetune_epochs = 10
+    finetune_epochs = 20
     precision = "bf16-true"
     log_every_n_steps = 10
     pretrain_checkpoint_dir = "checkpoints/pretrain"
@@ -150,9 +150,9 @@ if __name__ == "__main__":
 
         lr_monitor = LearningRateMonitor(logging_interval="step")
         checkpoint_callback_finetune = ModelCheckpoint(
-            monitor="val_acc",
+            monitor="val_acc_top_5",
             dirpath=finetune_checkpoint_dir,
-            filename="linear-cifar100-{epoch:02d}-{val_acc:.2f}",
+            filename="linear-cifar100-{epoch:02d}-{val_acc_top_5:.2f}",
             save_top_k=2,
             mode="max",
             verbose=True,
