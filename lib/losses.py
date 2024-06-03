@@ -8,7 +8,7 @@ def sim(u: torch.Tensor, v: torch.Tensor, temperature: float):
 
 
 class InfoNCELoss(torch.nn.Module):
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
         self.cross_entropy_loss = torch.nn.CrossEntropyLoss()
@@ -29,7 +29,7 @@ class InfoNCELoss(torch.nn.Module):
 
 
 class DCL_paper(torch.nn.Module):
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
 
@@ -54,7 +54,7 @@ class DCL_paper(torch.nn.Module):
 
 
 class DHEL(torch.nn.Module):
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
 
@@ -70,14 +70,15 @@ class DHEL(torch.nn.Module):
         pos_loss = sim_uv.masked_select(pos_mask)
 
         # In DHEL, the denominator only contains the negative samples of the anchors
-        neg_sim_uu = sim_uu[~pos_mask].view(B, -1)
+        neg_mask = ~pos_mask
+        neg_sim_uu = sim_uu.masked_select(neg_mask).view(B, -1)
         neg_loss = torch.logsumexp(neg_sim_uu, dim=-1)
 
         return (-pos_loss + neg_loss).mean()
 
 
 class NT_xent(torch.nn.Module):
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
 
@@ -101,7 +102,7 @@ class NT_xent(torch.nn.Module):
 
 
 class DCL(torch.nn.Module):
-    def __init__(self, temperature: float = 0.07):
+    def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
 
