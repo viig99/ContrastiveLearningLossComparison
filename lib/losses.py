@@ -28,7 +28,7 @@ class InfoNCELoss(torch.nn.Module):
         return loss
 
 
-class DCL(torch.nn.Module):
+class DCL_paper(torch.nn.Module):
     def __init__(self, temperature: float = 0.07):
         super().__init__()
         self.temperature = temperature
@@ -69,6 +69,7 @@ class DHEL(torch.nn.Module):
         pos_mask = torch.eye(B, device=u.device, dtype=torch.bool)
         pos_loss = sim_uv.masked_select(pos_mask)
 
+        # In DHEL, the denominator only contains the negative samples of the anchors
         neg_sim_uu = sim_uu[~pos_mask].view(B, -1)
         neg_loss = torch.logsumexp(neg_sim_uu, dim=-1)
 
@@ -91,6 +92,31 @@ class NT_xent(torch.nn.Module):
         )
         pos_loss = sim_zz.masked_select(pos_mask)
 
+        # In NT_xent, the denominator contains both positive and negative samples.
+        neg_mask = ~diag_mask
+        neg_sim_zz = sim_zz.masked_select(neg_mask).view(N, -1)
+        neg_loss = torch.logsumexp(neg_sim_zz, dim=-1)
+
+        return (-pos_loss + neg_loss).mean()
+
+
+class DCL(torch.nn.Module):
+    def __init__(self, temperature: float = 0.07):
+        super().__init__()
+        self.temperature = temperature
+
+    def forward(self, u: torch.Tensor, v: torch.Tensor):
+        z = torch.cat((u, v), dim=0)
+        N = z.size(0)
+        sim_zz = sim(z, z, self.temperature)
+
+        diag_mask = torch.eye(N, device=u.device, dtype=torch.bool)
+        pos_mask = diag_mask.roll(shifts=N // 2, dims=0) | diag_mask.roll(
+            shifts=-N // 2, dims=0
+        )
+        pos_loss = sim_zz.masked_select(pos_mask)
+
+        # As per the DCL paper, the loss func is same as NT-Xent but the denominator only contains the negative samples.
         neg_mask = ~pos_mask & ~diag_mask
         neg_sim_zz = sim_zz.masked_select(neg_mask).view(N, -1)
         neg_loss = torch.logsumexp(neg_sim_zz, dim=-1)
@@ -108,10 +134,6 @@ if __name__ == "__main__":
     v = torch.randn(M, d)
     temperature = 0.1
 
-    dcl = DCL(temperature)
-    dcl_loss = dcl(u, v)
-    print("DCL Loss:", dcl_loss.item())
-
     infonce = InfoNCELoss(temperature)
     infonce_loss = infonce(u, v)
     print("InfoNCE Loss:", infonce_loss.item())
@@ -123,3 +145,11 @@ if __name__ == "__main__":
     nt_xent = NT_xent(temperature)
     nt_xent_loss = nt_xent(u, v)
     print("NT-Xent Loss:", nt_xent_loss.item())
+
+    dcl = DCL(temperature)
+    dcl_loss = dcl(u, v)
+    print("DCL Loss:", dcl_loss.item())
+
+    dclp = DCL_paper(temperature)
+    dclp_loss = dclp(u, v)
+    print("DCL Imlp Paper Loss:", dclp_loss.item())
