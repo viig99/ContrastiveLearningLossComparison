@@ -44,3 +44,65 @@ class SimCLR(pl.LightningModule):
             num_training_steps=self.total_steps,
         )
         return [optim], [{"scheduler": scheduler, "interval": "step"}]
+
+
+class LinearClassifier(pl.LightningModule):
+    def __init__(
+        self, backbone_model: pl.LightningModule, num_classes: int, total_steps: int
+    ):
+        super().__init__()
+        self.backbone = backbone_model
+        self.fc = nn.Linear(2048, num_classes)
+        self.total_steps = total_steps
+        self.warmup_steps = int(0.05 * total_steps)
+        self.loss = nn.CrossEntropyLoss()
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = self.backbone(x)
+        return self.fc(x)
+
+    def training_step(self, batch, batch_index):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        self.log("train_loss", loss, prog_bar=True, on_step=True)
+        return loss
+
+    def validation_step(self, batch, batch_index):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        self.log("val_loss", loss, prog_bar=True, on_step=True)
+
+        # calculate accuracy
+        preds = torch.argmax(logits, dim=1)
+        acc = (preds == y).float().mean()
+        self.log("val_acc", acc, prog_bar=True, on_epoch=True, on_step=False)
+        return loss
+
+    def test_step(self, batch, batch_index):
+        x, y = batch
+        logits = self(x)
+        loss = self.loss(logits, y)
+        self.log("test_loss", loss, prog_bar=True)
+
+        # calculate accuracy
+        preds = torch.argmax(logits, dim=1)
+        acc = (preds == y).float().mean()
+        self.log("test_acc", acc, prog_bar=True, on_epoch=True, on_step=False)
+        return loss
+
+    def configure_optimizers(self):
+        optim = torch.optim.AdamW(
+            self.parameters(),
+            lr=1e-3,
+            eps=1e-6,
+            fused=True,
+        )
+        scheduler = get_cosine_schedule_with_warmup(
+            optim,
+            num_warmup_steps=self.warmup_steps,
+            num_training_steps=self.total_steps,
+        )
+        return [optim], [{"scheduler": scheduler, "interval": "step"}]

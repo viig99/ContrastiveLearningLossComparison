@@ -11,7 +11,11 @@ from torchvision import transforms
 
 class CIFAR100DataModule(L.LightningDataModule):
     def __init__(
-        self, data_dir: str = "./datasets", num_workers: int = 8, batch_size: int = 32
+        self,
+        data_dir: str = "./datasets",
+        num_workers: int = 8,
+        batch_size: int = 32,
+        batch_factor: int = 2,
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -28,6 +32,7 @@ class CIFAR100DataModule(L.LightningDataModule):
         )
         self.num_workers = num_workers
         self.batch_size = batch_size
+        self.batch_factor = batch_factor
 
     def prepare_data(self):
         # download
@@ -43,6 +48,8 @@ class CIFAR100DataModule(L.LightningDataModule):
             self.cifar_pretrain, self.cifar_finetune_train, self.cifar_finetune_val = (
                 random_split(cifar_train_full, [0.7, 0.25, 0.05], generator=generator)
             )
+            self.cifar_finetune_train.dataset.transform = self.val_transforms  # type: ignore
+            self.cifar_finetune_val.dataset.transform = self.val_transforms  # type: ignore
 
         # Assign test dataset for use in dataloader(s)
         if stage == "test":
@@ -63,7 +70,7 @@ class CIFAR100DataModule(L.LightningDataModule):
     def train_dataloader(self):
         return DataLoader(
             self.cifar_finetune_train,
-            batch_size=self.batch_size * 4,
+            batch_size=self.batch_size * self.batch_factor,
             shuffle=True,
             drop_last=True,
             num_workers=self.num_workers,
@@ -73,7 +80,7 @@ class CIFAR100DataModule(L.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.cifar_finetune_val,
-            batch_size=self.batch_size * 4,
+            batch_size=self.batch_size * self.batch_factor,
             shuffle=False,
             drop_last=False,
             num_workers=self.num_workers,
@@ -82,7 +89,7 @@ class CIFAR100DataModule(L.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(
             self.cifar_test,
-            batch_size=self.batch_size * 4,
+            batch_size=self.batch_size * self.batch_factor,
             shuffle=False,
             drop_last=False,
             num_workers=self.num_workers,
