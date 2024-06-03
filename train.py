@@ -28,7 +28,6 @@ class Config:
     log_every_n_steps = 10
     pretrain_checkpoint_dir = "checkpoints/pretrain"
     finetune_checkpoint_dir = "checkpoints/finetune"
-    pretrain = False
     loss_func = "info_nce"
     temperature = 0.1
 
@@ -55,7 +54,6 @@ def get_last_checkpoint(checkpoint_dir: str):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pretrain", action="store_true")
     parser.add_argument("--num_workers", type=int, default=Config.num_workers)
     parser.add_argument("--batch_size", type=int, default=Config.batch_size)
     parser.add_argument(
@@ -74,12 +72,16 @@ if __name__ == "__main__":
         batch_size=cfg.batch_size,
     )
     datamodule.prepare_data()
-    datamodule.setup("fit")
 
     pretrain_checkpoint_dir = f"{cfg.pretrain_checkpoint_dir}_{cfg.loss_func}"
+    finetune_checkpoint_dir = f"{cfg.finetune_checkpoint_dir}_{cfg.loss_func}"
 
-    if cfg.pretrain:
-
+    # Pre-training phase
+    if not (
+        os.path.exists(pretrain_checkpoint_dir)
+        and get_last_checkpoint(pretrain_checkpoint_dir)
+    ):
+        datamodule.setup("pretrain")
         pretrain_data = datamodule.pretrain_dataloader()
 
         model = SimCLR(
@@ -116,19 +118,22 @@ if __name__ == "__main__":
             ckpt_path=get_last_checkpoint(pretrain_checkpoint_dir),
         )
 
-    else:
+    # Fine-tuning phase
+    if not (
+        os.path.exists(finetune_checkpoint_dir)
+        and get_last_checkpoint(finetune_checkpoint_dir)
+    ):
 
         datamodule.setup(stage="finetune")
-        datamodule.setup("test")
 
         # Fine-tuning phase
-        checkpoint = get_last_checkpoint(pretrain_checkpoint_dir)
+        pretrain_checkpoint = get_last_checkpoint(pretrain_checkpoint_dir)
 
-        if checkpoint is None:
+        if pretrain_checkpoint is None:
             raise ValueError("No checkpoint found, please pretrain first.")
 
         backbone_model = SimCLR.load_from_checkpoint(
-            checkpoint,
+            pretrain_checkpoint,
             total_steps=0,
             temperature=cfg.temperature,
             loss_func_name=cfg.loss_func,
@@ -145,8 +150,6 @@ if __name__ == "__main__":
             num_classes=cfg.num_classes,
             total_steps=get_total_steps(finetune_data, batch_size, num_epochs),
         )
-
-        finetune_checkpoint_dir = f"{cfg.finetune_checkpoint_dir}_{cfg.loss_func}"
 
         lr_monitor = LearningRateMonitor(logging_interval="step")
         checkpoint_callback_finetune = ModelCheckpoint(
@@ -175,6 +178,8 @@ if __name__ == "__main__":
             ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
         )
 
+        # Test phase
+        datamodule.setup("test")
         finetune_trainer.test(
             model=finetune_model, dataloaders=datamodule.test_dataloader()
         )

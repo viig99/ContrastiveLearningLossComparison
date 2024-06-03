@@ -40,18 +40,19 @@ class CIFAR100DataModule(L.LightningDataModule):
 
     def setup(self, stage: str):
         # Assign train/val datasets for use in dataloaders
-        if stage == "fit":
-            cifar_train_full = CIFAR100(
+        if stage == "pretrain":
+            self.cifar_pretrain = CIFAR100(
                 self.data_dir, train=True, transform=self.transform
-            )
-            generator = torch.Generator().manual_seed(42)
-            self.cifar_pretrain, self.cifar_finetune_train, self.cifar_finetune_val = (
-                random_split(cifar_train_full, [0.7, 0.25, 0.05], generator=generator)
             )
 
         if stage == "finetune":
-            self.cifar_finetune_train.dataset.transform = self.val_transforms  # type: ignore
-            self.cifar_finetune_val.dataset.transform = self.val_transforms  # type: ignore
+            cifar_train_full = CIFAR100(
+                self.data_dir, train=True, transform=self.val_transforms
+            )
+            generator = torch.Generator().manual_seed(42)
+            self.cifar_finetune_train, self.cifar_finetune_val = random_split(
+                cifar_train_full, [0.9, 0.1], generator=generator
+            )
 
         # Assign test dataset for use in dataloader(s)
         if stage == "test":
@@ -74,7 +75,7 @@ class CIFAR100DataModule(L.LightningDataModule):
             self.cifar_finetune_train,
             batch_size=self.batch_size * self.batch_factor,
             shuffle=True,
-            drop_last=True,
+            drop_last=False,
             num_workers=self.num_workers,
             pin_memory=True,
         )
