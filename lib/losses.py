@@ -28,7 +28,7 @@ class InfoNCELoss(torch.nn.Module):
         return loss
 
 
-class DCL_paper(torch.nn.Module):
+class DCL(torch.nn.Module):
     def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
@@ -101,7 +101,7 @@ class NT_xent(torch.nn.Module):
         return (-pos_loss + neg_loss).mean()
 
 
-class DCL(torch.nn.Module):
+class DCL_symmetric(torch.nn.Module):
     def __init__(self, temperature: float):
         super().__init__()
         self.temperature = temperature
@@ -151,6 +151,6 @@ if __name__ == "__main__":
     dcl_loss = dcl(u, v)
     print("DCL Loss:", dcl_loss.item())
 
-    dclp = DCL_paper(temperature)
-    dclp_loss = dclp(u, v)
-    print("DCL Imlp Paper Loss:", dclp_loss.item())
+    dcls = DCL_symmetric(temperature)
+    dcls_loss = dcls(u, v)
+    print("DCL Symmetric Loss:", dcls_loss.item())
