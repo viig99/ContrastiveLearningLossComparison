@@ -56,6 +56,7 @@ class SimCLR(pl.LightningModule):
             optim,
             num_warmup_steps=self.warmup_steps,
             num_training_steps=self.total_steps,
+            num_cycles=0.3,
         )
         return [optim], [{"scheduler": scheduler, "interval": "step"}]
 
@@ -142,5 +143,6 @@ class LinearClassifier(pl.LightningModule):
             optim,
             num_warmup_steps=self.warmup_steps,
             num_training_steps=self.total_steps,
+            num_cycles=0.3,
         )
         return [optim], [{"scheduler": scheduler, "interval": "step"}]

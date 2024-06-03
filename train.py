@@ -23,7 +23,7 @@ class Config:
     batch_factor = 4
     max_epochs = 200
     num_classes = 100
-    finetune_epochs = 20
+    finetune_epochs = 200
     precision = "bf16-true"
     log_every_n_steps = 10
     pretrain_checkpoint_dir = "checkpoints/pretrain"
