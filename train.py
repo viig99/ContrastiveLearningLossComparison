@@ -7,6 +7,7 @@ import torch
 import os
 import pytorch_lightning as pl
 import argparse
+import gc
 
 torch.set_float32_matmul_precision("medium")
 
@@ -19,9 +20,9 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    num_workers = 10
+    num_workers = 8
     batch_size = 128
-    batch_factor = 4
+    batch_factor = 2
     max_epochs = 200
     num_classes = 100
     finetune_epochs = 200
@@ -78,6 +79,7 @@ if __name__ == "__main__":
         datamodule = CIFAR100DataModule(
             num_workers=cfg.num_workers,
             batch_size=cfg.batch_size,
+            batch_factor=cfg.batch_factor,
         )
         datamodule.prepare_data()
 
@@ -128,6 +130,11 @@ if __name__ == "__main__":
                 train_dataloaders=pretrain_data,
                 ckpt_path=get_last_checkpoint(pretrain_checkpoint_dir),
             )
+
+            del model
+            del trainer
+            torch.cuda.empty_cache()
+            gc.collect()
 
         # Fine-tuning phase
         if not (
@@ -190,6 +197,12 @@ if __name__ == "__main__":
                 ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
             )
 
+            del backbone_model
+            del finetune_model
+            del finetune_trainer
+            torch.cuda.empty_cache()
+            gc.collect()
+
         # Test phase
         if os.path.exists(finetune_checkpoint_dir) and get_last_checkpoint(
             finetune_checkpoint_dir
@@ -220,5 +233,12 @@ if __name__ == "__main__":
             finetune_trainer.test(
                 model=finetune_model, dataloaders=datamodule.test_dataloader()
             )
+
+            del backbone_model
+            del finetune_model
+            del finetune_trainer
+            torch.cuda.empty_cache()
+            gc.collect()
+
     except Exception as e:
         sys.exit(f"Exiting from script.")

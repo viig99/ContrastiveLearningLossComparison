@@ -96,7 +96,7 @@ class LinearClassifier(pl.LightningModule):
         acc_top_5 = (
             torch.topk(logits, k=5, dim=1)
             .indices.eq(y.unsqueeze(1))
-            .sum()
+            .sum(dim=1)
             .float()
             .mean()
         )
@@ -120,7 +120,7 @@ class LinearClassifier(pl.LightningModule):
         acc_top_5 = (
             torch.topk(logits, k=5, dim=1)
             .indices.eq(y.unsqueeze(1))
-            .sum()
+            .sum(dim=1)
             .float()
             .mean()
         )
