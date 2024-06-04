@@ -165,8 +165,8 @@ class VICReg(torch.nn.Module):
         v = v - v.mean(dim=0)
         cov_u = (u.T @ u) / (N - 1)
         cov_v = (v.T @ v) / (N - 1)
-        diag = torch.eye(D, device=u.device, dtype=torch.bool)
-        return (cov_u[~diag].pow_(2).sum() + cov_v[~diag].pow_(2).sum()) / D
+        mask = ~torch.eye(D, device=u.device, dtype=torch.bool)
+        return (cov_u[mask].pow_(2).sum() + cov_v[mask].pow_(2).sum()) / D
 
 
 def benchmark(
