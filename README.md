@@ -7,6 +7,7 @@ The following loss functions are compared:
   * [NT-Xent Loss (SimCLR)](https://arxiv.org/abs/2002.05709 "A Simple Framework for Contrastive Learning of Visual Representations")
   * [DCL Loss (Decoupled Contrastive Learning)](https://arxiv.org/abs/2110.06848 "Decoupled Contrastive Learning")
   * [DHEL Loss (Decoupled Hypershperical Energy Loss)](https://arxiv.org/abs/2405.18045 "Bridging Mini-Batch and Asymptotic Analysis in Contrastive Learning: From InfoNCE to Kernel-Based Losses")
+  * [VICReg Loss (Variance-Invariance-Covariance Regularization)](https://arxiv.org/pdf/2105.04906 "Vicreg: Variance-Invariance-Covariance Regularization For Self-Supervised Learning")
 
 InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file.
 
@@ -30,6 +31,7 @@ The following table shows the performance of different contrastive learning loss
 | Loss Function | Top-1 Accuracy | Top-5 Accuracy |
 | ------------- | -------------- | -------------- |
 | InfoNCE Loss  |                |                |
-| NT-Xent Loss  |                |                |
+| NT-Xent Loss  | 0.5364         | 0.8115         |
 | DCL Loss      |                |                |
 | DHEL Loss     |                |                |
+| VICReg Loss   |                |                |

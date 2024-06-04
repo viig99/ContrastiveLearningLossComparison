@@ -1,5 +1,6 @@
 import torch
 from torch.nn import functional as F
+from typing import Tuple
 
 
 @torch.jit.script
@@ -125,32 +126,99 @@ class DCL_symmetric(torch.nn.Module):
         return (-pos_loss + neg_loss).mean()
 
 
+class VICReg(torch.nn.Module):
+    def __init__(
+        self,
+        temperature: float = 0,
+        sim_loss_weight: float = 25.0,
+        var_loss_weight: float = 25.0,
+        cov_loss_weight: float = 1.0,
+    ) -> None:
+        super().__init__()
+        self.sim_loss_weight = sim_loss_weight
+        self.var_loss_weight = var_loss_weight
+        self.cov_loss_weight = cov_loss_weight
+
+    def forward(self, u: torch.Tensor, v: torch.Tensor):
+        sim_loss = self._similarity_loss(u, v)
+        var_loss = self._variance_loss(u, v)
+        cov_loss = self._covariance_loss(u, v)
+
+        return (
+            (self.sim_loss_weight * sim_loss)
+            + (self.var_loss_weight * var_loss)
+            + (self.cov_loss_weight * cov_loss)
+        )
+
+    def _similarity_loss(self, u: torch.Tensor, v: torch.Tensor):
+        return F.mse_loss(u, v)
+
+    def _variance_loss(self, u: torch.Tensor, v: torch.Tensor):
+        eps = 1e-4
+        std_u = torch.sqrt(u.var(dim=0) + eps)
+        std_v = torch.sqrt(v.var(dim=0) + eps)
+        return torch.mean(F.relu(1 - std_u)) + torch.mean(F.relu(1 - std_v))
+
+    def _covariance_loss(self, u: torch.Tensor, v: torch.Tensor):
+        N, D = u.size()
+        u = u - u.mean(dim=0)
+        v = v - v.mean(dim=0)
+        cov_u = (u.T @ u) / (N - 1)
+        cov_v = (v.T @ v) / (N - 1)
+        diag = torch.eye(D, device=u.device, dtype=torch.bool)
+        return (cov_u[~diag].pow_(2).sum() + cov_v[~diag].pow_(2).sum()) / D
+
+
+def benchmark(
+    loss_func, input1, input2, times=10, warmup=5
+) -> Tuple[float, torch.Tensor]:
+    loss = torch.Tensor([0])
+    for _ in range(warmup):
+        loss_func(input1, input2)
+
+    torch.cuda.synchronize()
+    start_time = torch.cuda.Event(enable_timing=True)
+    end_time = torch.cuda.Event(enable_timing=True)
+
+    start_time.record()  # type: ignore
+    for _ in range(times):
+        loss = loss_func(input1, input2)
+    end_time.record()  # type: ignore
+
+    torch.cuda.synchronize()
+    return start_time.elapsed_time(end_time) / times, loss
+
+
 if __name__ == "__main__":
 
     torch.random.manual_seed(42)
 
     # Example usage
     M, d = 100, 128  # Example dimensions
-    u = torch.randn(M, d)
-    v = torch.randn(M, d)
+    u = torch.randn(M, d).cuda()
+    v = torch.randn(M, d).cuda()
     temperature = 0.1
 
     infonce = InfoNCELoss(temperature)
-    infonce_loss = infonce(u, v)
-    print("InfoNCE Loss:", infonce_loss.item())
+    infonce_time, infonce_loss = benchmark(infonce, u, v)
+    print(f"InfoNCE Loss: {infonce_loss.item():.4f} in {infonce_time:.2f}ms")
 
     dhel = DHEL(temperature)
-    dhel_loss = dhel(u, v)
-    print("DHEL Loss:", dhel_loss.item())
+    dhel_time, dhel_loss = benchmark(dhel, u, v)
+    print(f"DHEL Loss: {dhel_loss.item():.4f} in {dhel_time:.2f}ms")
 
     nt_xent = NT_xent(temperature)
-    nt_xent_loss = nt_xent(u, v)
-    print("NT-Xent Loss:", nt_xent_loss.item())
+    nt_xent_time, nt_xent_loss = benchmark(nt_xent, u, v)
+    print(f"NT-Xent Loss: {nt_xent_loss.item():.4f} in {nt_xent_time:.2f}ms")
 
     dcl = DCL(temperature)
-    dcl_loss = dcl(u, v)
-    print("DCL Loss:", dcl_loss.item())
+    dcl_time, dcl_loss = benchmark(dcl, u, v)
+    print(f"DCL Loss: {dcl_loss.item():.4f} in {dcl_time:.2f}ms")
 
     dcls = DCL_symmetric(temperature)
-    dcls_loss = dcls(u, v)
-    print("DCL Symmetric Loss:", dcls_loss.item())
+    dcls_time, dcls_loss = benchmark(dcls, u, v)
+    print(f"DCL Symmetric Loss: {dcls_loss.item():.4f} in {dcls_time:.2f}ms")
+
+    vicreg = VICReg()
+    vicreg_time, vicreg_loss = benchmark(vicreg, u, v)
+    print(f"VICReg Loss: {vicreg_loss.item():.4f} in {vicreg_time:.2f}ms")

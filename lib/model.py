@@ -14,6 +14,7 @@ class Losses(Enum):
     dcl_symmetric = DCL_symmetric
     nt_xent = NT_xent
     dhel = DHEL
+    vicreg = VICReg
 
     @staticmethod
     def get_choices():
