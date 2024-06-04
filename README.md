@@ -33,5 +33,5 @@ The following table shows the performance of different contrastive learning loss
 | InfoNCE Loss  |                |                |
 | NT-Xent Loss  | 0.5364         | 0.8115         |
 | DCL Loss      |                |                |
-| DHEL Loss     |                |                |
+| DHEL Loss     | 0.5614         | 0.8256         |
 | VICReg Loss   |                |                |
