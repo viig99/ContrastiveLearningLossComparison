@@ -29,7 +29,7 @@ class Config:
     pretrain_checkpoint_dir = "checkpoints/pretrain"
     finetune_checkpoint_dir = "checkpoints/finetune"
     loss_func = "info_nce"
-    temperature = 0.1
+    temperature = 0.07
 
     def __init__(self, args):
         for k, v in vars(args).items():
