@@ -2,6 +2,7 @@
 # from the paper. The settings are chosen such that the example can easily be
 # run on a small dataset with a single GPU.
 
+import sys
 import torch
 import os
 import pytorch_lightning as pl
@@ -71,148 +72,153 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    cfg = Config(args)
+    try:
+        cfg = Config(args)
 
-    datamodule = CIFAR100DataModule(
-        num_workers=cfg.num_workers,
-        batch_size=cfg.batch_size,
-    )
-    datamodule.prepare_data()
-
-    pretrain_checkpoint_dir = f"{cfg.pretrain_checkpoint_dir}_{cfg.loss_func}"
-    finetune_checkpoint_dir = f"{cfg.finetune_checkpoint_dir}_{cfg.loss_func}"
-
-    # Pre-training phase
-    if not (
-        os.path.exists(pretrain_checkpoint_dir)
-        and get_last_checkpoint(pretrain_checkpoint_dir)
-        and not args.continue_pretrain
-    ):
-        datamodule.setup("pretrain")
-        pretrain_data = datamodule.pretrain_dataloader()
-
-        model = SimCLR(
-            total_steps=get_total_steps(pretrain_data, cfg.batch_size, cfg.max_epochs),
-            temperature=cfg.temperature,
-            loss_func_name=cfg.loss_func,
+        datamodule = CIFAR100DataModule(
+            num_workers=cfg.num_workers,
+            batch_size=cfg.batch_size,
         )
+        datamodule.prepare_data()
+
+        pretrain_checkpoint_dir = f"{cfg.pretrain_checkpoint_dir}_{cfg.loss_func}"
+        finetune_checkpoint_dir = f"{cfg.finetune_checkpoint_dir}_{cfg.loss_func}"
 
         # Pre-training phase
-        lr_monitor = LearningRateMonitor(logging_interval="step")
-        checkpoint_callback_pretrain = ModelCheckpoint(
-            monitor="epoch_ce_loss",
-            dirpath=pretrain_checkpoint_dir,
-            filename="simclr-cifar100-{epoch:02d}-{epoch_ce_loss:.2f}",
-            save_top_k=2,
-            mode="min",
-            verbose=True,
-        )
+        if not (
+            os.path.exists(pretrain_checkpoint_dir)
+            and get_last_checkpoint(pretrain_checkpoint_dir)
+            and not args.continue_pretrain
+        ):
+            datamodule.setup("pretrain")
+            pretrain_data = datamodule.pretrain_dataloader()
 
-        trainer = pl.Trainer(
-            max_epochs=cfg.max_epochs,
-            accelerator="auto",
-            strategy="auto",
-            precision=cfg.precision,  # type: ignore
-            log_every_n_steps=cfg.log_every_n_steps,
-            callbacks=[lr_monitor, checkpoint_callback_pretrain],
-            benchmark=False,
-            deterministic=True,
-        )
+            model = SimCLR(
+                total_steps=get_total_steps(
+                    pretrain_data, cfg.batch_size, cfg.max_epochs
+                ),
+                temperature=cfg.temperature,
+                loss_func_name=cfg.loss_func,
+            )
 
-        trainer.fit(
-            model=model,
-            train_dataloaders=pretrain_data,
-            ckpt_path=get_last_checkpoint(pretrain_checkpoint_dir),
-        )
+            # Pre-training phase
+            lr_monitor = LearningRateMonitor(logging_interval="step")
+            checkpoint_callback_pretrain = ModelCheckpoint(
+                monitor="epoch_ce_loss",
+                dirpath=pretrain_checkpoint_dir,
+                filename="simclr-cifar100-{epoch:02d}-{epoch_ce_loss:.2f}",
+                save_top_k=2,
+                mode="min",
+                verbose=True,
+            )
 
-    # Fine-tuning phase
-    if not (
-        os.path.exists(finetune_checkpoint_dir)
-        and get_last_checkpoint(finetune_checkpoint_dir)
-        and not args.continue_finetune
-    ):
+            trainer = pl.Trainer(
+                max_epochs=cfg.max_epochs,
+                accelerator="auto",
+                strategy="auto",
+                precision=cfg.precision,  # type: ignore
+                log_every_n_steps=cfg.log_every_n_steps,
+                callbacks=[lr_monitor, checkpoint_callback_pretrain],
+                benchmark=False,
+                deterministic=True,
+            )
 
-        datamodule.setup(stage="finetune")
+            trainer.fit(
+                model=model,
+                train_dataloaders=pretrain_data,
+                ckpt_path=get_last_checkpoint(pretrain_checkpoint_dir),
+            )
 
         # Fine-tuning phase
-        pretrain_checkpoint = get_last_checkpoint(pretrain_checkpoint_dir)
+        if not (
+            os.path.exists(finetune_checkpoint_dir)
+            and get_last_checkpoint(finetune_checkpoint_dir)
+            and not args.continue_finetune
+        ):
 
-        if pretrain_checkpoint is None:
-            raise ValueError("No checkpoint found, please pretrain first.")
+            datamodule.setup(stage="finetune")
 
-        backbone_model = SimCLR.load_from_checkpoint(
-            pretrain_checkpoint,
-            total_steps=0,
-            temperature=cfg.temperature,
-            loss_func_name=cfg.loss_func,
-        )
+            # Fine-tuning phase
+            pretrain_checkpoint = get_last_checkpoint(pretrain_checkpoint_dir)
 
-        finetune_data = datamodule.train_dataloader()
-        finetune_val_data = datamodule.val_dataloader()
+            if pretrain_checkpoint is None:
+                raise ValueError("No checkpoint found, please pretrain first.")
 
-        num_epochs = cfg.finetune_epochs
-        batch_size = cfg.batch_size * cfg.batch_factor
+            backbone_model = SimCLR.load_from_checkpoint(
+                pretrain_checkpoint,
+                total_steps=0,
+                temperature=cfg.temperature,
+                loss_func_name=cfg.loss_func,
+            )
 
-        finetune_model = LinearClassifier(
-            backbone_model=backbone_model,
-            num_classes=cfg.num_classes,
-            total_steps=get_total_steps(finetune_data, batch_size, num_epochs),
-        )
+            finetune_data = datamodule.train_dataloader()
+            finetune_val_data = datamodule.val_dataloader()
 
-        lr_monitor = LearningRateMonitor(logging_interval="step")
-        checkpoint_callback_finetune = ModelCheckpoint(
-            monitor="val_acc_top_5",
-            dirpath=finetune_checkpoint_dir,
-            filename="linear-cifar100-{epoch:02d}-{val_acc_top_5:.2f}",
-            save_top_k=2,
-            mode="max",
-            verbose=True,
-        )
+            num_epochs = cfg.finetune_epochs
+            batch_size = cfg.batch_size * cfg.batch_factor
 
-        finetune_trainer = pl.Trainer(
-            max_epochs=num_epochs,
-            accelerator="auto",
-            strategy="auto",
-            precision=cfg.precision,  # type: ignore
-            log_every_n_steps=cfg.log_every_n_steps,
-            callbacks=[lr_monitor, checkpoint_callback_finetune],
-            benchmark=False,
-            deterministic=True,
-        )
-        finetune_trainer.fit(
-            model=finetune_model,
-            train_dataloaders=finetune_data,
-            val_dataloaders=finetune_val_data,
-            ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
-        )
+            finetune_model = LinearClassifier(
+                backbone_model=backbone_model,
+                num_classes=cfg.num_classes,
+                total_steps=get_total_steps(finetune_data, batch_size, num_epochs),
+            )
 
-    # Test phase
-    if os.path.exists(finetune_checkpoint_dir) and get_last_checkpoint(
-        finetune_checkpoint_dir
-    ):
-        datamodule.setup("test")
+            lr_monitor = LearningRateMonitor(logging_interval="step")
+            checkpoint_callback_finetune = ModelCheckpoint(
+                monitor="val_acc_top_5",
+                dirpath=finetune_checkpoint_dir,
+                filename="linear-cifar100-{epoch:02d}-{val_acc_top_5:.2f}",
+                save_top_k=2,
+                mode="max",
+                verbose=True,
+            )
 
-        backbone_model = SimCLR.load_from_checkpoint(
-            pretrain_checkpoint,
-            total_steps=0,
-            temperature=cfg.temperature,
-            loss_func_name=cfg.loss_func,
-        )
+            finetune_trainer = pl.Trainer(
+                max_epochs=num_epochs,
+                accelerator="auto",
+                strategy="auto",
+                precision=cfg.precision,  # type: ignore
+                log_every_n_steps=cfg.log_every_n_steps,
+                callbacks=[lr_monitor, checkpoint_callback_finetune],
+                benchmark=False,
+                deterministic=True,
+            )
+            finetune_trainer.fit(
+                model=finetune_model,
+                train_dataloaders=finetune_data,
+                val_dataloaders=finetune_val_data,
+                ckpt_path=get_last_checkpoint(finetune_checkpoint_dir),
+            )
 
-        finetune_model = LinearClassifier.load_from_checkpoint(
-            get_last_checkpoint(finetune_checkpoint_dir),  # type: ignore
-            backbone_model=backbone_model,
-            num_classes=cfg.num_classes,
-            total_steps=0,
-        )
+        # Test phase
+        if os.path.exists(finetune_checkpoint_dir) and get_last_checkpoint(
+            finetune_checkpoint_dir
+        ):
+            datamodule.setup("test")
 
-        finetune_trainer = pl.Trainer(
-            accelerator="auto",
-            strategy="auto",
-            precision=cfg.precision,  # type: ignore
-            log_every_n_steps=cfg.log_every_n_steps,
-        )
+            backbone_model = SimCLR.load_from_checkpoint(
+                pretrain_checkpoint,
+                total_steps=0,
+                temperature=cfg.temperature,
+                loss_func_name=cfg.loss_func,
+            )
 
-        finetune_trainer.test(
-            model=finetune_model, dataloaders=datamodule.test_dataloader()
-        )
+            finetune_model = LinearClassifier.load_from_checkpoint(
+                get_last_checkpoint(finetune_checkpoint_dir),  # type: ignore
+                backbone_model=backbone_model,
+                num_classes=cfg.num_classes,
+                total_steps=0,
+            )
+
+            finetune_trainer = pl.Trainer(
+                accelerator="auto",
+                strategy="auto",
+                precision=cfg.precision,  # type: ignore
+                log_every_n_steps=cfg.log_every_n_steps,
+            )
+
+            finetune_trainer.test(
+                model=finetune_model, dataloaders=datamodule.test_dataloader()
+            )
+    except Exception as e:
+        sys.exit(f"Exiting from script.")
