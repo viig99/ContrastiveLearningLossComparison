@@ -68,6 +68,7 @@ class DHEL(torch.nn.Module):
         norm_u = F.normalize(u, p=2, dim=-1)
         norm_v = F.normalize(v, p=2, dim=-1)
         sim_uu = torch.mm(norm_u, norm_u.t()) / self.temperature
+        # We can also use `sim` here, but since we have already normalized the vectors, it more efficient to use mm instead.
 
         pos_loss = torch.div(
             (norm_u * norm_v).sum(dim=1), self.temperature
