@@ -21,7 +21,7 @@ InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file
 To run the code, follow the steps below:
 ```bash
 # To run all the loss functions
-$ ./benchmark.sh
+$ sh ./benchmark.sh
 
 # To run a specific loss function
 $ python train.py --loss_func <loss_function> --continue_pretrain --continue_finetune
