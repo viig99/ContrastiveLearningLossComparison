@@ -42,8 +42,8 @@ The following table shows the performance of different contrastive learning loss
 
 ## Comparison Image
 The following image shows the comparison of the loss functions.
-We can see that the DHEL loss converges faster than the other loss functions, and in the order mentioned in the paper
+We can see that the DHEL / DCL loss converges faster than the other loss functions, and in the order mentioned in the paper
 
-`DHEL > DCL > NT-Xent > InfoNCE.`
+`DHEL / DCL > NT-Xent > InfoNCE.`
 
 ![Comparison](assets/loss_comparison.png)
