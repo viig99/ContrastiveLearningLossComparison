@@ -34,7 +34,7 @@ The following table shows the performance of different contrastive learning loss
 
 | Loss Function | Top-1 Accuracy | Top-5 Accuracy | Additional Notes                                           |
 | ------------- | -------------- | -------------- | ---------------------------------------------------------- |
-| InfoNCE Loss  |                |                |                                                            |
+| InfoNCE Loss  | 0.5256         | 0.8046         |                                                            |
 | NT-Xent Loss  | 0.5364         | 0.8115         | -                                                          |
 | DCL Loss      | 0.5629         | 0.8322         | faster than NT-Xent but slower than DHEL.                  |
 | DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?) |
