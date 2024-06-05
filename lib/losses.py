@@ -64,14 +64,17 @@ class DHEL(torch.nn.Module):
         # v: shape (B, D) where B is the batch size and D is the feature dimension
 
         B = u.size(0)
-        sim_uv = sim(u, v, self.temperature)
-        sim_uu = sim(u, u, self.temperature)
 
-        pos_mask = torch.eye(B, device=u.device, dtype=torch.bool)
-        pos_loss = sim_uv.masked_select(pos_mask)
+        norm_u = F.normalize(u, p=2, dim=-1)
+        norm_v = F.normalize(v, p=2, dim=-1)
+        sim_uu = torch.mm(norm_u, norm_u.t()) / self.temperature
+
+        pos_loss = torch.div(
+            (norm_u * norm_v).sum(dim=1), self.temperature
+        )  # Since only the positive diagonal elements are required
 
         # In DHEL, the denominator only contains the negative samples of the anchors
-        neg_mask = ~pos_mask
+        neg_mask = ~torch.eye(B, device=u.device, dtype=torch.bool)
         neg_sim_uu = sim_uu.masked_select(neg_mask).view(B, -1)
         neg_loss = torch.logsumexp(neg_sim_uu, dim=-1)
 
