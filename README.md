@@ -20,6 +20,10 @@ InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file
 ## Usage
 To run the code, follow the steps below:
 ```bash
+# To run all the loss functions
+$ ./benchmark.sh
+
+# To run a specific loss function
 $ python train.py --loss_func <loss_function> --continue_pretrain --continue_finetune
 # loss_function: info_nce, dcl, dcl_symmetric, nt_xent, dhel, vicreg
 # Check python train.py --help for more options
