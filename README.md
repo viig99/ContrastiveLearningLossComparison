@@ -39,7 +39,7 @@ The following table shows the performance of different contrastive learning loss
 | NT-Xent Loss  | 0.5364         | 0.8115         | -                                                                              |
 | DCL Loss      | 0.5629         | 0.8322         | faster than NT-Xent but slower than DHEL.                                      |
 | DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?)                     |
-| VICReg Loss   |                |                |                                                                                |
+| VICReg Loss   | -              | -              | Finetuning Collapses, need to investigate if additional tricks are required.   |
 
 ## Comparison Image
 The following image shows the comparison of the loss functions.
