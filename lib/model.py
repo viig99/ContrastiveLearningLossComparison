@@ -64,7 +64,11 @@ class SimCLR(pl.LightningModule):
 
 class LinearClassifier(pl.LightningModule):
     def __init__(
-        self, backbone_model: pl.LightningModule, num_classes: int, total_steps: int
+        self,
+        backbone_model: pl.LightningModule,
+        num_classes: int,
+        total_steps: int,
+        fully_finetune: bool = False,
     ):
         super().__init__()
         self.backbone = backbone_model
@@ -72,9 +76,13 @@ class LinearClassifier(pl.LightningModule):
         self.total_steps = total_steps
         self.warmup_steps = int(0.05 * total_steps)
         self.loss = nn.CrossEntropyLoss()
+        self.fully_finetune = fully_finetune
 
     def forward(self, x):
-        with torch.no_grad():
+        if not self.fully_finetune:
+            with torch.no_grad():
+                x = self.backbone(x)
+        else:
             x = self.backbone(x)
         return self.fc(x)
 

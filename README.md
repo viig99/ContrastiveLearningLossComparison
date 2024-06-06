@@ -32,13 +32,14 @@ $ python train.py --loss_func <loss_function> --continue_pretrain --continue_fin
 ## Results
 The following table shows the performance of different contrastive learning loss functions on the CIFAR-100 dataset.
 
-| Loss Function | Top-1 Accuracy | Top-5 Accuracy | Additional Notes                                           |
-| ------------- | -------------- | -------------- | ---------------------------------------------------------- |
-| InfoNCE Loss  | 0.5256         | 0.8046         |                                                            |
-| NT-Xent Loss  | 0.5364         | 0.8115         | -                                                          |
-| DCL Loss      | 0.5629         | 0.8322         | faster than NT-Xent but slower than DHEL.                  |
-| DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?) |
-| VICReg Loss   |                |                |                                                            |
+| Loss Function | Top-1 Accuracy | Top-5 Accuracy | Additional Notes                                                               |
+| ------------- | -------------- | -------------- | ------------------------------------------------------------------------------ |
+| Supervised    | 0.6091         | 0.8558         | All layers fully trained, where others only have classification layer trained. |
+| InfoNCE Loss  | 0.5256         | 0.8046         |                                                                                |
+| NT-Xent Loss  | 0.5364         | 0.8115         | -                                                                              |
+| DCL Loss      | 0.5629         | 0.8322         | faster than NT-Xent but slower than DHEL.                                      |
+| DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?)                     |
+| VICReg Loss   |                |                |                                                                                |
 
 ## Comparison Image
 The following image shows the comparison of the loss functions.

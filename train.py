@@ -210,7 +210,7 @@ if __name__ == "__main__":
             datamodule.setup("test")
 
             backbone_model = SimCLR.load_from_checkpoint(
-                pretrain_checkpoint,
+                get_last_checkpoint(pretrain_checkpoint_dir),  # type: ignore
                 total_steps=0,
                 temperature=cfg.temperature,
                 loss_func_name=cfg.loss_func,
