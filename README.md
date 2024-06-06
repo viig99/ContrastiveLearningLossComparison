@@ -38,6 +38,7 @@ The following table shows the performance of different contrastive learning loss
 | InfoNCE Loss  | 0.5256         | 0.8046         |                                                                                |
 | NT-Xent Loss  | 0.5364         | 0.8115         | -                                                                              |
 | DCL Loss      | 0.5629         | 0.8322         | faster than NT-Xent but slower than DHEL.                                      |
+| DCL Sym Loss  | 0.5701         | 0.837          | Symmetric version of DCL Loss.                                                 |
 | DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?)                     |
 | VICReg Loss   | -              | -              | Finetuning Collapses, need to investigate if additional tricks are required.   |
 
