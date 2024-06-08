@@ -157,3 +157,5 @@ __pycache__/
 checkpoints/
 datasets/
 lightning_logs/
+text_results/
+benchmark_text.sh

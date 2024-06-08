@@ -49,3 +49,5 @@ We can see that the DHEL / DCL loss converges faster than the other loss functio
 `DHEL / DCL > NT-Xent > InfoNCE.`
 
 ![Comparison](assets/loss_comparison.png)
+
+![Text Comparison](assets/loss_comparison_text.png)
