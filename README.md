@@ -11,6 +11,17 @@ The following loss functions are compared:
 
 InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file.
 
+## Table of Contents
+- [Contrastive Learning Loss Comparision](#contrastive-learning-loss-comparision)
+  - [Table of Contents](#table-of-contents)
+  - [Methodology](#methodology)
+  - [Usage](#usage)
+  - [Results](#results)
+  - [Comparison Images](#comparison-images)
+    - [Loss Comparison for Vision Models](#loss-comparison-for-vision-models)
+    - [Loss Comparison for Text Models](#loss-comparison-for-text-models)
+
+
 ## Methodology
 * The CIFAR-100 dataset is used to train a ResNet-18 model. 
 * The model is pre-trained on all the training data for 200 epochs using the contrastive learning loss functions mentioned above.
@@ -23,10 +34,14 @@ To run the code, follow the steps below:
 # To run all the loss functions
 $ sh ./benchmark.sh
 
-# To run a specific loss function
+# To run a specific loss function for vision models (resnet-18 on CIFAR-100)
 $ python train.py --loss_func <loss_function> --continue_pretrain --continue_finetune
 # loss_function: info_nce, dcl, dcl_symmetric, nt_xent, dhel, vicreg
 # Check python train.py --help for more options
+
+# To run a specific loss function for text models (MS MARCO passage ranking dataset)
+$ python train_text.py --loss <loss_function>
+# loss: MNRL, INFO_NCE, NT_XENT, DCL, DHEL
 ```
 
 ## Results
@@ -42,12 +57,14 @@ The following table shows the performance of different contrastive learning loss
 | DHEL Loss     | 0.5614         | 0.8256         | Classification accuracy converges fast  (high uniformity?)                     |
 | VICReg Loss   | -              | -              | Finetuning Collapses, need to investigate if additional tricks are required.   |
 
-## Comparison Image
+## Comparison Images
+
+### Loss Comparison for Vision Models
 The following image shows the comparison of the loss functions.
 We can see that the DHEL / DCL loss converges faster than the other loss functions, and in the order mentioned in the paper
 
 `DHEL / DCL > NT-Xent > InfoNCE.`
-
 ![Comparison](assets/loss_comparison.png)
 
+### Loss Comparison for Text Models
 ![Text Comparison](assets/loss_comparison_text.png)

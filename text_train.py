@@ -76,7 +76,7 @@ if __name__ == "__main__":
         train_loss = train_loss_dcl
     elif args.loss == "DHEL":
         train_loss = train_loss_dhel
-    elif args.loss == "SIMCLR":
+    elif args.loss == "NT_XENT":
         train_loss = train_loss_ntxent
     elif args.loss == "INFO_NCE":
         train_loss = train_loss_info_nce
