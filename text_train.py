@@ -7,6 +7,7 @@ from typing import Dict, Any, Iterable
 from lib.losses import DCL, DHEL, NT_xent, InfoNCELoss
 import torch
 import argparse
+import os
 
 
 class RankingLoss(nn.Module):
@@ -99,4 +100,5 @@ if __name__ == "__main__":
     evaluator = dev_dataset.get_evaluator(args.loss)
 
     # Save the model
+    os.makedirs("text_results", exist_ok=True)
     evaluator(model, output_path=f"text_results")
