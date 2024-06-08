@@ -15,6 +15,8 @@ InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file
 - [Contrastive Learning Loss Comparision](#contrastive-learning-loss-comparision)
   - [Table of Contents](#table-of-contents)
   - [Methodology](#methodology)
+    - [Vision Models](#vision-models)
+    - [Text Models](#text-models)
   - [Usage](#usage)
   - [Results](#results)
   - [Comparison Images](#comparison-images)
@@ -23,10 +25,17 @@ InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file
 
 
 ## Methodology
+
+### Vision Models
 * The CIFAR-100 dataset is used to train a ResNet-18 model. 
 * The model is pre-trained on all the training data for 200 epochs using the contrastive learning loss functions mentioned above.
 * The model is then fine-tuned for classification on 90% of the data for another 200 epochs and the rest 10% of the data is used for validation.
 * The accuracy of the model is then evaluated on the test set.
+
+### Text Models
+* The MS MARCO passage ranking dataset is used to train a MiniLM model.
+* Model is pre-trained on the training data for 10 epochs using the contrastive learning loss functions mentioned above.
+* The model is then evaluated on the dev set on passage retrieval metrics like Recall@k, MRR, etc.
 
 ## Usage
 To run the code, follow the steps below:
