@@ -4,7 +4,7 @@ from sentence_transformers import losses, models, SentenceTransformer
 
 from torch import nn, Tensor
 from typing import Dict, Any, Iterable
-from lib.losses import DCL, DHEL, NT_xent, InfoNCELoss
+from lib.losses import DCL, DHEL, NT_xent, InfoNCELoss, InfoNCELoss_angle
 import torch
 import argparse
 import os
@@ -70,6 +70,9 @@ if __name__ == "__main__":
     train_loss_dhel = RankingLoss(model=model, loss_func_cls=DHEL)
     train_loss_ntxent = RankingLoss(model=model, loss_func_cls=NT_xent)
     train_loss_info_nce = RankingLoss(model=model, loss_func_cls=InfoNCELoss)
+    train_loss_info_nce_angle = RankingLoss(
+        model=model, loss_func_cls=InfoNCELoss_angle
+    )
 
     if args.loss == "MNRL":
         train_loss = train_loss_mnrl
@@ -81,6 +84,8 @@ if __name__ == "__main__":
         train_loss = train_loss_ntxent
     elif args.loss == "INFO_NCE":
         train_loss = train_loss_info_nce
+    elif args.loss == "INFO_NCE_ANGLE":
+        train_loss = train_loss_info_nce_angle
     else:
         raise ValueError("Invalid loss function")
 

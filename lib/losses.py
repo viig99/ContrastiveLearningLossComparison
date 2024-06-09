@@ -173,6 +173,27 @@ class VICReg(torch.nn.Module):
         return (cov_u[mask].pow_(2).sum() + cov_v[mask].pow_(2).sum()) / D
 
 
+class InfoNCELoss_angle(torch.nn.Module):
+    def __init__(self, temperature: float):
+        super().__init__()
+        self.temperature = temperature
+        self.margin = 10 * torch.pi / 180
+
+    def forward(self, u: torch.Tensor, v: torch.Tensor):
+        B = u.size(0)
+        norm_u = F.normalize(u, p=2, dim=-1)
+        norm_v = F.normalize(v, p=2, dim=-1)
+
+        similarity_uv = torch.mm(norm_u, norm_v.t()).clamp(-1, 1)
+        theta_uv = torch.acos(similarity_uv).to(dtype=similarity_uv.dtype)
+        pos_mask = torch.eye(B, device=u.device, dtype=torch.bool)
+
+        pos = torch.cos(theta_uv[pos_mask] + self.margin) / self.temperature
+        sim_uv_temp = similarity_uv / self.temperature
+        sim_uv_temp[pos_mask] = pos
+        return (-pos + torch.logsumexp(sim_uv_temp, dim=-1)).mean()
+
+
 def benchmark(
     loss_func, input1, input2, times=10, warmup=5
 ) -> Tuple[float, torch.Tensor]:
@@ -201,7 +222,7 @@ if __name__ == "__main__":
     M, d = 100, 128  # Example dimensions
     u = torch.randn(M, d).cuda()
     v = torch.randn(M, d).cuda()
-    temperature = 0.1
+    temperature = 0.05
 
     infonce = InfoNCELoss(temperature)
     infonce_time, infonce_loss = benchmark(infonce, u, v)
@@ -226,3 +247,9 @@ if __name__ == "__main__":
     vicreg = VICReg()
     vicreg_time, vicreg_loss = benchmark(vicreg, u, v)
     print(f"VICReg Loss: {vicreg_loss.item():.4f} in {vicreg_time:.2f}ms")
+
+    infonce_angle = InfoNCELoss_angle(temperature)
+    infonce_angle_time, infonce_angle_loss = benchmark(infonce_angle, u, v)
+    print(
+        f"InfoNCE Angle Loss: {infonce_angle_loss.item():.4f} in {infonce_angle_time:.2f}ms"
+    )

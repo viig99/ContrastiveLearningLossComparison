@@ -22,6 +22,7 @@ InfoNCE loss variants are implemented in the [lib/losses.py](lib/losses.py) file
   - [Comparison Images](#comparison-images)
     - [Loss Comparison for Vision Models](#loss-comparison-for-vision-models)
     - [Loss Comparison for Text Models](#loss-comparison-for-text-models)
+  - [References](#references)
 
 
 ## Methodology
@@ -50,7 +51,7 @@ $ python train.py --loss_func <loss_function> --continue_pretrain --continue_fin
 
 # To run a specific loss function for text models (MS MARCO passage ranking dataset)
 $ python train_text.py --loss <loss_function>
-# loss: MNRL, INFO_NCE, NT_XENT, DCL, DHEL
+# loss: MNRL, INFO_NCE, NT_XENT, DCL, DHEL, INFO_NCE_ANGLE
 ```
 
 ## Results
@@ -77,3 +78,10 @@ We can see that the DHEL / DCL loss converges faster than the other loss functio
 
 ### Loss Comparison for Text Models
 ![Text Comparison](assets/loss_comparison_text.png)
+
+
+## References
+
+* [A Comprehensive Review of best models on MTEB](https://www.semanticscholar.org/reader/82de481ebb5cf401b215178c20b058c7c1a4f9cd "Recent advances in text embedding: A Comprehensive Review of Top-Performing Methods on the MTEB Benchmark")
+* [GTE Models: paper](https://www.semanticscholar.org/reader/84109e1235b725f4bb44a54bab8b493bd723fdd3 "Towards General Text Embeddings with Multi-stage Contrastive Learning")
+* [InfoCSE with Angular Loss](https://aclanthology.org/2022.acl-long.336.pdf "A Contrastive Framework for Learning Sentence Representations from Pairwise and Triple-wise Perspective in Angular Space")
