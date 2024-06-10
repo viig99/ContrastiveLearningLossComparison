@@ -26,7 +26,7 @@ class Config:
     max_epochs = 200
     num_classes = 100
     finetune_epochs = 200
-    precision = "bf16-mixed"
+    precision = "bf16-true"
     log_every_n_steps = 10
     pretrain_checkpoint_dir = "checkpoints/pretrain"
     finetune_checkpoint_dir = "checkpoints/finetune"
