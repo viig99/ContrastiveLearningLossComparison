@@ -241,4 +241,4 @@ if __name__ == "__main__":
             gc.collect()
 
     except Exception as e:
-        sys.exit(f"Exiting from script.")
+        sys.exit(f"Exiting from script. Error: {e}")

@@ -21,6 +21,66 @@ class Losses(Enum):
         return [loss.name for loss in Losses]
 
 
+class BatchTimer:
+
+    def __init__(self, logger):
+        self.logger = logger
+
+    def __enter__(self):
+        torch.cuda.synchronize()
+        self.start = torch.cuda.Event(enable_timing=True)
+        self.end = torch.cuda.Event(enable_timing=True)
+        self.start.record()  # type: ignore
+        return self
+
+    def __exit__(self, *args):
+        self.end.record()  # type: ignore
+        torch.cuda.synchronize()
+        self.elapsed_time = self.start.elapsed_time(self.end)
+        self.logger("batch_time_ms", self.elapsed_time, prog_bar=True, on_step=True)
+
+
+def configure_optimizers(
+    named_parameters, warmup_steps, total_steps, weight_decay=None
+):
+    if weight_decay and weight_decay > 0:
+        param_dict = {pn: p for pn, p in named_parameters if p.requires_grad}
+        decay_params = [p for n, p in param_dict.items() if p.dim() > 1]
+        no_decay_params = [p for n, p in param_dict.items() if p.dim() <= 1]
+
+        print(
+            f"Decay tensors - params: {len(decay_params)} - {sum(p.numel() for p in decay_params)}"
+        )
+        print(
+            f"No Decay tensors - params: {len(no_decay_params)} - {sum(p.numel() for p in no_decay_params)}"
+        )
+
+        optim_groups = [
+            {"params": decay_params, "weight_decay": 0.1},
+            {"params": no_decay_params, "weight_decay": 0.0},
+        ]
+    else:
+        get_params_from = lambda np: (p for _, p in np)
+        optim_groups = get_params_from(named_parameters)
+
+    optim = torch.optim.AdamW(
+        optim_groups,
+        lr=1e-3,
+        eps=1e-8,
+        betas=(0.9, 0.95),
+        fused=True,
+    )
+
+    scheduler = get_cosine_schedule_with_warmup(
+        optim,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps,
+        num_cycles=0.3,
+    )
+
+    return optim, scheduler
+
+
 class SimCLR(pl.LightningModule):
     def __init__(self, total_steps: int, temperature: float, loss_func_name: str):
         super().__init__()
@@ -39,25 +99,20 @@ class SimCLR(pl.LightningModule):
 
     def training_step(self, batch, batch_index):
         (x0, x1) = batch[0]
-        z0 = self.forward(x0)
-        z1 = self.forward(x1)
-        loss = self.criterion(z0, z1)
+        with BatchTimer(self.log):
+            z0 = self.forward(x0)
+            z1 = self.forward(x1)
+            loss = self.criterion(z0, z1)
         self.log("batch_ce_loss", loss, prog_bar=True, on_step=True)
         self.log("epoch_ce_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         return loss
 
     def configure_optimizers(self):
-        optim = torch.optim.AdamW(
-            self.parameters(),
-            lr=1e-3,
-            eps=1e-6,
-            fused=True,
-        )
-        scheduler = get_cosine_schedule_with_warmup(
-            optim,
-            num_warmup_steps=self.warmup_steps,
-            num_training_steps=self.total_steps,
-            num_cycles=0.3,
+        optim, scheduler = configure_optimizers(
+            self.named_parameters(),
+            self.warmup_steps,
+            self.total_steps,
+            weight_decay=None,
         )
         return [optim], [{"scheduler": scheduler, "interval": "step"}]
 
@@ -88,8 +143,9 @@ class LinearClassifier(pl.LightningModule):
 
     def training_step(self, batch, batch_index):
         x, y = batch
-        logits = self(x)
-        loss = self.loss(logits, y)
+        with BatchTimer(self.log):
+            logits = self(x)
+            loss = self.loss(logits, y)
         self.log("train_loss", loss, prog_bar=True, on_step=True)
         return loss
 
@@ -142,16 +198,10 @@ class LinearClassifier(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optim = torch.optim.AdamW(
-            self.parameters(),
-            lr=1e-3,
-            eps=1e-6,
-            fused=True,
-        )
-        scheduler = get_cosine_schedule_with_warmup(
-            optim,
-            num_warmup_steps=self.warmup_steps,
-            num_training_steps=self.total_steps,
-            num_cycles=0.3,
+        optim, scheduler = configure_optimizers(
+            self.named_parameters(),
+            self.warmup_steps,
+            self.total_steps,
+            weight_decay=None,
         )
         return [optim], [{"scheduler": scheduler, "interval": "step"}]
