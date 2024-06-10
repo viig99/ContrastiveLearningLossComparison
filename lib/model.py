@@ -66,8 +66,8 @@ def configure_optimizers(
     optim = torch.optim.AdamW(
         optim_groups,
         lr=1e-3,
-        eps=1e-8,
-        betas=(0.9, 0.95),
+        eps=1e-6,
+        betas=(0.9, 0.995),
         fused=True,
     )
 
