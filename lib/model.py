@@ -162,21 +162,7 @@ class LinearClassifier(pl.LightningModule):
         self.log("val_loss", loss, prog_bar=True, on_step=True)
 
         # calculate accuracy
-        preds = torch.argmax(logits, dim=1)
-        acc_top_1 = (preds == y).float().mean()
-        acc_top_5 = (
-            torch.topk(logits, k=5, dim=1)
-            .indices.eq(y.unsqueeze(1))
-            .sum(dim=1)
-            .float()
-            .mean()
-        )
-        self.log(
-            "val_acc_top_1", acc_top_1, prog_bar=True, on_epoch=True, on_step=False
-        )
-        self.log(
-            "val_acc_top_5", acc_top_5, prog_bar=True, on_epoch=True, on_step=False
-        )
+        self._common_metrics(logits, y, "val")
         return loss
 
     def test_step(self, batch, batch_index):
@@ -186,6 +172,10 @@ class LinearClassifier(pl.LightningModule):
         self.log("test_loss", loss, prog_bar=True)
 
         # calculate accuracy
+        self._common_metrics(logits, y, "test")
+        return loss
+
+    def _common_metrics(self, logits, y, name: str):
         preds = torch.argmax(logits, dim=1)
         acc_top_1 = (preds == y).float().mean()
         acc_top_5 = (
@@ -196,12 +186,11 @@ class LinearClassifier(pl.LightningModule):
             .mean()
         )
         self.log(
-            "test_acc_top_1", acc_top_1, prog_bar=True, on_epoch=True, on_step=False
+            f"{name}_acc_top_1", acc_top_1, prog_bar=True, on_epoch=True, on_step=False
         )
         self.log(
-            "test_acc_top_5", acc_top_5, prog_bar=True, on_epoch=True, on_step=False
+            f"{name}_acc_top_5", acc_top_5, prog_bar=True, on_epoch=True, on_step=False
         )
-        return loss
 
     def configure_optimizers(self):
         optim, scheduler = configure_optimizers(
