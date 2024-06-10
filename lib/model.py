@@ -60,7 +60,7 @@ def configure_optimizers(
         )
 
         optim_groups = [
-            {"params": decay_params, "weight_decay": 0.1},
+            {"params": decay_params, "weight_decay": weight_decay},
             {"params": no_decay_params, "weight_decay": 0.0},
         ]
     else:
