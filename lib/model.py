@@ -36,8 +36,12 @@ class BatchTimer:
     def __exit__(self, *args):
         self.end.record()  # type: ignore
         torch.cuda.synchronize()
-        self.elapsed_time = self.start.elapsed_time(self.end)
-        self.logger("batch_time_ms", self.elapsed_time, prog_bar=True, on_step=True)
+        self.logger(
+            "batch_time_ms",
+            self.start.elapsed_time(self.end),
+            prog_bar=True,
+            on_step=True,
+        )
 
 
 def configure_optimizers(
