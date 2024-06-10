@@ -85,8 +85,10 @@ class SimCLR(pl.LightningModule):
     def __init__(self, total_steps: int, temperature: float, loss_func_name: str):
         super().__init__()
         resnet = torchvision.models.resnet18()
-        self.backbone = nn.Sequential(*list(resnet.children())[:-1])
-        self.projection_head = SimCLRProjectionHead(512, 2048, 2048, num_layers=3)
+        self.backbone = torch.compile(nn.Sequential(*list(resnet.children())[:-1]))
+        self.projection_head = torch.compile(
+            SimCLRProjectionHead(512, 2048, 2048, num_layers=3)
+        )
         loss_func = getattr(Losses, loss_func_name).value
         self.criterion = loss_func(temperature)
         self.total_steps = total_steps
