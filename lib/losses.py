@@ -44,10 +44,13 @@ class DCL(torch.nn.Module):
 
         pos_mask = torch.eye(B, device=u.device, dtype=torch.bool)
         pos_loss = sim_uv.masked_select(pos_mask)
+        # Positives are uv pairs, so we only need the diagonal elements.
 
         neg_mask = ~pos_mask
         neg_sim_uv = sim_uv.masked_select(neg_mask).view(B, -1)
         neg_sim_uu = sim_uu.masked_select(neg_mask).view(B, -1)
+
+        # In DCL, the denominator contains only the negative samples from the (anchor, anchor) & (anchor, positive) pairs.
         negative_sim = torch.cat((neg_sim_uv, neg_sim_uu), dim=1)
         neg_loss = torch.logsumexp(negative_sim, dim=-1)
 
@@ -74,7 +77,7 @@ class DHEL(torch.nn.Module):
             (norm_u * norm_v).sum(dim=1), self.temperature
         )  # Since only the positive diagonal elements are required
 
-        # In DHEL, the denominator only contains the negative samples of the anchors
+        # In DHEL, the denominator only contains the negative samples of the (anchor, anchor) pairs.
         neg_mask = ~torch.eye(B, device=u.device, dtype=torch.bool)
         neg_sim_uu = sim_uu.masked_select(neg_mask).view(B, -1)
         neg_loss = torch.logsumexp(neg_sim_uu, dim=-1)
@@ -98,7 +101,8 @@ class NT_xent(torch.nn.Module):
         )
         pos_loss = sim_zz.masked_select(pos_mask)
 
-        # In NT_xent, the denominator contains both positive and negative samples.
+        # In NT_xent, the denominator contains both positive and negative samples from both (anchor, anchor) & (anchor, positive) pairs,
+        # only the diagonal elements are excluded.
         neg_mask = ~diag_mask
         neg_sim_zz = sim_zz.masked_select(neg_mask).view(N, -1)
         neg_loss = torch.logsumexp(neg_sim_zz, dim=-1)
@@ -117,12 +121,14 @@ class DCL_symmetric(torch.nn.Module):
         sim_zz = sim(z, z, self.temperature)
 
         diag_mask = torch.eye(N, device=u.device, dtype=torch.bool)
+        # (u, v) and (v, u) along their respective diagonals are considered as positive pairs.
         pos_mask = diag_mask.roll(shifts=N // 2, dims=0) | diag_mask.roll(
             shifts=-N // 2, dims=0
         )
         pos_loss = sim_zz.masked_select(pos_mask)
 
         # As per the DCL paper, the loss func is same as NT-Xent but the denominator only contains the negative samples.
+        # Symmetric version of DCL, so it also contains non-diagonal (v, u), (v, v) pairs in the denominator.
         neg_mask = ~pos_mask & ~diag_mask
         neg_sim_zz = sim_zz.masked_select(neg_mask).view(N, -1)
         neg_loss = torch.logsumexp(neg_sim_zz, dim=-1)
@@ -188,8 +194,11 @@ class InfoNCELoss_angle(torch.nn.Module):
         theta_uv = torch.acos(similarity_uv).to(dtype=similarity_uv.dtype)
         pos_mask = torch.eye(B, device=u.device, dtype=torch.bool)
 
+        # As per the angle InfoNCE loss, the margin is only added to the positive pairs.
         pos = torch.cos(theta_uv[pos_mask] + self.margin) / self.temperature
         sim_uv_temp = similarity_uv / self.temperature
+
+        # since denominator contains the margin added positives & non margin negatives.
         sim_uv_temp[pos_mask] = pos
         return (-pos + torch.logsumexp(sim_uv_temp, dim=-1)).mean()
 
