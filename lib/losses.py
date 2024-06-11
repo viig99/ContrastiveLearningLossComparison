@@ -54,6 +54,8 @@ class DCL(torch.nn.Module):
         negative_sim = torch.cat((neg_sim_uv, neg_sim_uu), dim=1)
         neg_loss = torch.logsumexp(negative_sim, dim=-1)
 
+        # Key identity: log(exp(x) = x, log(a/b) = log(a) - log(b)
+        # -log ( e^(sim_uv) / (e^(neg_sim_uv) + sum(e^(neg_sim_uu))) = -sim_uv + logsumexp(concat[neg_sim_uv, neg_sim_uu])
         return (-pos_loss + neg_loss).mean()
 
 
