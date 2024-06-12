@@ -51,9 +51,9 @@ if __name__ == "__main__":
 
     model_name = args.model_name
     # Now we create a SentenceTransformer model from scratch
-    word_emb = models.Transformer(model_name)
-    pooling = models.Pooling(word_emb.get_word_embedding_dimension())
-    model = SentenceTransformer(modules=[word_emb, pooling])
+    word_emb = torch.compile(models.Transformer(model_name))
+    pooling = torch.compile(models.Pooling(word_emb.get_word_embedding_dimension()))
+    model = SentenceTransformer(modules=[word_emb, pooling])  # type: ignore
 
     # For training the SentenceTransformer model, we need a dataset, a dataloader, and a loss used for training.
     train_dataset = MSMarcoDataset()
